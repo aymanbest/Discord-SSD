@@ -5,7 +5,8 @@ import (
 	"log"
 	"os"
 	"os/signal"
-
+	
+	
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -26,6 +27,8 @@ func main() {
 	}
 	storage.InitTable()
 
+
+	
 	token := os.Getenv("TOKEN")
 	port := 5000
 

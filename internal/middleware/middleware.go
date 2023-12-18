@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 )
@@ -11,3 +12,4 @@ func AddSession(session *discordgo.Session) gin.HandlerFunc {
 		ctx.Next()
 	}
 }
+
