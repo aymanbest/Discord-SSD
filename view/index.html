@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f2f2f2;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+
+    form {
+      text-align: center;
+      margin: 20px;
+    }
+
+    .custom-file-upload {
+      display: inline-block;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #4caf50;
+      color: #fff;
+      border: 1px solid #4caf50;
+      border-radius: 5px;
+    }
+
+    #file-upload {
+      display: none;
+    }
+
+    #file-count {
+      display: block;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    input[type="submit"] {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      background-color: #3498db;
+      color: #fff;
+      border: 1px solid #3498db;
+      border-radius: 5px;
+    }
+
+    table {
+      width: 80%;
+      margin: 20px auto;
+      border-collapse: collapse;
+    }
+
+    td {
+      padding: 10px;
+      border: 1px solid #ddd;
+    }
+
+    .folder {
+      font-weight: bold;
+      cursor: pointer;
+      color: #3498db;
+    }
+
+    .file-list {
+      display: none;
+    }
+
+    a {
+      color: #3498db;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .notification {
+      display: none;
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      padding: 15px;
+      background-color: #4CAF50;
+      color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    #search {
+      display: block;
+      margin: 10px auto;
+      padding: 10px 20px;
+      font-size: 16px;
+      border: 1px solid #3498db;
+      border-radius: 5px;
+    }
+  </style>
+
+  <title>SSD</title>
+</head>
+
+<body>
+  <h1>My Discord SSD</h1>
+  <div id="notification" class="notification"></div>
+  <form id="uploader" method="POST" enctype="multipart/form-data">
+    <label for="file-upload" class="custom-file-upload">Choose File</label>
+    <input id="file-upload" name="files" type="file" multiple>
+    <span id="file-count"></span>
+    <input type="submit" value="Upload">
+  </form>
+  <input type="text" id="search" placeholder="Search files...">
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const searchInput = document.querySelector("#search");
+
+      function updateFileList(searchValue = "") {
+        const list = document.querySelector(".list");
+
+        fetch("/files")
+          .then(async (response) => {
+            const data = await response.json();
+            const files = data.files;
+            const folders = {};
+
+            files.forEach((name) => {
+              const lowerCaseName = name.toLowerCase(); // Convert the file name to lowercase
+              const lowerCaseSearchValue = searchValue.toLowerCase(); // Convert the search value to lowercase
+
+              if (searchValue && !lowerCaseName.includes(lowerCaseSearchValue)) {
+                return;
+              }
+
+              const extension = name.split(".").pop();
+              if (!folders[extension]) {
+                folders[extension] = [];
+              }
+              folders[extension].push(name);
+            });
+
+            // Generate HTML for folders and files
+            const rows = Object.keys(folders)
+              .map((extension) => {
+                const folderName = extension.toUpperCase() + " Files";
+                const fileNames = folders[extension]
+                  .map(
+                    (name) =>
+                      `<div>
+                        <a href="/download?file=${name}">${name}</a>
+                        <button onclick="deleteFile('${name.replace("'", "\\'")}')" style="padding: 5px 10px; background-color: red; color: #fff; border: none; border-radius: 3px; cursor: pointer;">Delete</button>
+                        <button onclick="renameFile('${name.replace("'", "\\'")}', '${name.split('.').pop()}')" style="padding: 5px 10px; background-color: green; color: #fff; border: none; border-radius: 3px; cursor: pointer;">Rename</button>
+                      </div>`
+                  )
+                  .join("<br>");
+                return `<tr>
+                  <td class="folder">${folderName}</td>
+                  <td class="file-list">${fileNames}</td>
+                </tr>`;
+              })
+              .join("");
+
+            list.innerHTML = rows;
+
+            const folderElements = document.querySelectorAll(".folder");
+            folderElements.forEach((folder) => {
+              folder.addEventListener("click", () => {
+                const fileList = folder.nextElementSibling;
+                fileList.style.display =
+                  fileList.style.display === "none" ? "block" : "none";
+              });
+            });
+
+            // Open folders related to the search
+            if (searchValue) {
+              const fileListElements = document.querySelectorAll(".file-list");
+              fileListElements.forEach((fileList) => {
+                fileList.style.display = "block";
+              });
+            }
+          })
+          .catch((error) => {
+            console.error("Error:", error);
+          });
+      }
+
+      // Initial file list update
+      updateFileList();
+
+      // Add search functionality
+      searchInput.addEventListener("input", (event) => {
+        updateFileList(event.target.value);
+      });
+
+      window.renameFile = function (oldName, extension) {
+        const oldNameWithoutExtension = oldName.split('.')[0];
+        const newName = prompt("Enter new file name:", oldNameWithoutExtension);
+        if (newName) {
+          const encodedOldName = encodeURIComponent(oldName);
+          const encodedNewName = encodeURIComponent(newName + '.' + extension);
+          fetch(`/files/${encodedOldName}/${encodedNewName}`, {
+            method: 'PUT',
+          })
+            .then(() => {
+              showNotification('File renamed successfully');
+              updateFileList();
+            })
+            .catch(error => console.error('Error:', error));
+        }
+      }
+
+      window.deleteFile = function (name) {
+        const encodedName = encodeURIComponent(name);
+        fetch(`/files/${encodedName}`, {
+          method: "DELETE",
+        })
+          .then(() => {
+            showNotification("File deleted successfully");
+            updateFileList();
+          })
+          .catch((error) => console.error("Error:", error));
+      };
+
+      document.getElementById("uploader").addEventListener("submit", function (event) {
+        event.preventDefault();
+
+        var formData = new FormData(this);
+
+        fetch("/upload", {
+          method: "POST",
+          body: formData,
+        })
+          .then((response) => {
+            if (response.ok) {
+              showNotification("Files uploaded successfully");
+              updateFileList();
+            } else {
+              showNotification("File upload error");
+            }
+          })
+          .catch((error) => showNotification("Error: " + error));
+      });
+
+      function showNotification(message) {
+        var notificationElement = document.getElementById("notification");
+        notificationElement.textContent = message;
+        notificationElement.style.display = "block";
+
+        setTimeout(function () {
+          notificationElement.style.display = "none";
+        }, 5000);
+      }
+    });
+  </script>
+
+
+  <table class="list"></table>
+
+  <script>
+    const fileUpload = document.getElementById("file-upload");
+    const fileCount = document.getElementById("file-count");
+
+    fileUpload.addEventListener("change", () => {
+      const count = fileUpload.files.length;
+      fileCount.textContent = count > 0 ? `${count} file(s) selected` : "";
+    });
+  </script>
+  <table class="list"></table>
+
+
+</body>
+
+</html>
