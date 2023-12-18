@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
-	"github.com/joho/godotenv"
+	
+
 	_ "github.com/lib/pq"
 )
+
 
 
 var DB *sql.DB
@@ -24,15 +25,8 @@ type FileTable struct {
 
 
 func ConnectToDB() {
-    err := godotenv.Load()
-    if err != nil {
-        log.Fatal("Error loading .env file")
-    }
-
-    psqlInfo := os.Getenv("DATABASE_URL")
-    if psqlInfo == "" {
-        log.Fatal("DATABASE_URL not set")
-    }
+    psqlInfo := "postgresql://powersrangers3663:7oCly8LsatGg@ep-curly-rain-53537261.eu-central-1.aws.neon.tech/ssaleetude?sslmode=require"
+    var err error
     DB, err = sql.Open("postgres", psqlInfo)
     if err != nil {
         log.Fatal(err)
