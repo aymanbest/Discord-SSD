@@ -37,6 +37,7 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 	router := gin.Default()
+    router.Use(handler.BasicAuth())
 	router.LoadHTMLGlob("view/*")
 	router.GET("/", handler.GetIndex)
 	router.GET("/files", handler.GetFileList)
