@@ -136,8 +136,8 @@
             const folders = {};
 
             files.forEach((name) => {
-              const lowerCaseName = name.toLowerCase(); // Convert the file name to lowercase
-              const lowerCaseSearchValue = searchValue.toLowerCase(); // Convert the search value to lowercase
+              const lowerCaseName = name.toLowerCase();
+              const lowerCaseSearchValue = searchValue.toLowerCase();
 
               if (searchValue && !lowerCaseName.includes(lowerCaseSearchValue)) {
                 return;
@@ -161,17 +161,27 @@
                         <a href="/download?file=${name}">${name}</a>
                         <button onclick="deleteFile('${name.replace("'", "\\'")}')" style="padding: 5px 10px; background-color: red; color: #fff; border: none; border-radius: 3px; cursor: pointer;">Delete</button>
                         <button onclick="renameFile('${name.replace("'", "\\'")}', '${name.split('.').pop()}')" style="padding: 5px 10px; background-color: green; color: #fff; border: none; border-radius: 3px; cursor: pointer;">Rename</button>
-                      </div>`
+                                    <button onclick="shareFile('${name}')" style="padding: 5px 10px; background-color: blue; color: #fff; border: none; border-radius: 3px; cursor: pointer;">Share</button>
+                                  </div>`
                   )
                   .join("<br>");
                 return `<tr>
-                  <td class="folder">${folderName}</td>
-                  <td class="file-list">${fileNames}</td>
-                </tr>`;
+                              <td class="folder">${folderName}</td>
+                              <td class="file-list">${fileNames}</td>
+                            </tr>`;
               })
               .join("");
 
             list.innerHTML = rows;
+
+            window.shareFile = function (name) {
+              const downloadLink = `${window.location.origin}/share?file=${name}`;
+              navigator.clipboard.writeText(downloadLink).then(function () {
+                showNotification('The share link has been successfully copied to your clipboard!');
+              }, function (err) {
+                showNotification('Failed to copy the URL' + err);
+              });
+            }
 
             const folderElements = document.querySelectorAll(".folder");
             folderElements.forEach((folder) => {

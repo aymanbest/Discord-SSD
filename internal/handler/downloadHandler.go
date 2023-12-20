@@ -47,7 +47,7 @@ func GetFile(ctx *gin.Context) {
 		ctx.Writer.Write(fileBytes)
 		ctx.Writer.(http.Flusher).Flush()
 
-		// Get the next indexId from the database
+		
 		row := storage.GetDB().QueryRow("SELECT id_chain FROM discssd WHERE files = $1", indexId)
 		err = row.Scan(&indexId)
 		if err != nil {

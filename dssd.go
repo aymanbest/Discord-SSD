@@ -5,8 +5,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
-	
-	
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -16,19 +15,16 @@ import (
 )
 
 func main() {
-	
-	
+
 	storage.ConnectToDB()
-	
-    storage.InitTable()
+
+	storage.InitTable()
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatalln("Fail to load .env file.")
 	}
 	storage.InitTable()
 
-
-	
 	token := os.Getenv("TOKEN")
 	port := 5000
 
@@ -37,14 +33,19 @@ func main() {
 		log.Fatalln(err.Error())
 	}
 	router := gin.Default()
-    router.Use(handler.BasicAuth())
 	router.LoadHTMLGlob("view/*")
-	router.GET("/", handler.GetIndex)
-	router.GET("/files", handler.GetFileList)
-	router.GET("/download", middleware.AddSession(bot), handler.GetFile)
-	router.POST("/upload", middleware.AddSession(bot), handler.PostUpload)
-	router.DELETE("/files/:name", handler.DeleteFileHandler)
-	router.PUT("/files/:oldFileName/:newFileName", handler.RenameFileHandler)
+
+	authRoutes := router.Group("/")
+	authRoutes.Use(handler.BasicAuth())
+	authRoutes.GET("/", handler.GetIndex)
+	authRoutes.GET("/files", handler.GetFileList)
+	authRoutes.GET("/download", middleware.AddSession(bot), handler.GetFile)
+	authRoutes.POST("/upload", middleware.AddSession(bot), handler.PostUpload)
+	authRoutes.DELETE("/files/:name", handler.DeleteFileHandler)
+	authRoutes.PUT("/files/:oldFileName/:newFileName", handler.RenameFileHandler)
+
+	
+	router.GET("/share", middleware.AddSession(bot), handler.GetFile)
 
 	err = bot.Open()
 	if err != nil {
