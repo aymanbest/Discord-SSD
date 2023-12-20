@@ -3,7 +3,7 @@
 ## Build
 
 ```bash
-go build discord-drive.go
+go build dssd.go
 ```
 
 ## Usage
