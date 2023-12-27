@@ -18,6 +18,9 @@ go build dssd.go
     TOKEN=YOUR-DISCORD-BOT-TOKEN
     CHANNELID=STORAGE-CHANNEL-ID
     CHUNKSIZE=10000000
+    DATABASE_URL= "postgresql://powe****63:7oCly8Lsa****curly-rain-****al-1.aws.neon.tech/ssa****?sslmode=require"
+    USER="user" #for auth
+    PASS="pass"  #for auth
     ```
 
 2. execute
