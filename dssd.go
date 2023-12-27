@@ -42,7 +42,7 @@ func main() {
 	authRoutes.GET("/download", middleware.AddSession(bot), handler.GetFile)
 	authRoutes.POST("/upload", middleware.AddSession(bot), handler.PostUpload)
 	authRoutes.DELETE("/files/:name", handler.DeleteFileHandler)
-	authRoutes.PUT("/files/:oldFileName/:newFileName", handler.RenameFileHandler)
+	authRoutes.PUT("/files/:oldName/:newName", handler.RenameFileHandler)
 
 	
 	router.GET("/share", middleware.AddSession(bot), handler.GetFile)

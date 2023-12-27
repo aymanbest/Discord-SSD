@@ -5,6 +5,9 @@ import (
 	"net/http"
 	"database/sql"
 	"log"
+    "encoding/json"
+    "strings"
+
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/gin-gonic/gin"
@@ -13,49 +16,56 @@ import (
 )
 
 func GetFile(ctx *gin.Context) {
-	bot, _ := ctx.MustGet("bot").(*discordgo.Session)
-	fileName := ctx.Query("file")
-	if fileName == "" {
-		ctx.Status(http.StatusBadRequest)
-		return
-	}
-	// Get the indexId from the database
-	row := storage.GetDB().QueryRow("SELECT id_chain FROM discssd WHERE files = $1", fileName)
-	var indexId string
-	err := row.Scan(&indexId)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			ctx.Status(http.StatusNotFound)
-		} else {
-			log.Fatal(err)
-		}
-		return
-	}
+    bot, _ := ctx.MustGet("bot").(*discordgo.Session)
+    fileName := ctx.Query("file")
+    if fileName == "" {
+        ctx.Status(http.StatusBadRequest)
+        return
+    }
 
-	header := ctx.Writer.Header()
-	header.Set("Transfer-Encoding", "chunked")
-	header.Set("Content-Type", "application/octet-stream")
-	header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
-	ctx.Writer.WriteHeader(http.StatusOK)
+    log.Println("Fetching file ID and ID chain from database...")
+    row := storage.GetDB().QueryRow("SELECT files-> $1, id_chain FROM discssd WHERE files ? $1", fileName)
+    var fileId string
+    var idChainJson string
+    err := row.Scan(&fileId, &idChainJson)
+    if err != nil {
+        if err == sql.ErrNoRows {
+            
+            ctx.Status(http.StatusNotFound)
+        } else {
+            
+            log.Fatal(err)
+        }
+        return
+    }
 
-	for {
-		fileBytes, err := discordutil.DownloadFileFromChannel(bot, indexId)
-		if err != nil {
-			ctx.Status(http.StatusNotFound)
-			return
-		}
-		ctx.Writer.Write(fileBytes)
-		ctx.Writer.(http.Flusher).Flush()
+    
+    var idChain map[string]string
+    err = json.Unmarshal([]byte(idChainJson), &idChain)
+    if err != nil {
+        log.Fatal(err)
+        return
+    }
 
-		
-		row := storage.GetDB().QueryRow("SELECT id_chain FROM discssd WHERE files = $1", indexId)
-		err = row.Scan(&indexId)
-		if err != nil {
-			if err == sql.ErrNoRows {
-				break
-			} else {
-				log.Fatal(err)
-			}
-		}
-	}
+    header := ctx.Writer.Header()
+    header.Set("Transfer-Encoding", "chunked")
+    header.Set("Content-Type", "application/octet-stream")
+    header.Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, fileName))
+    ctx.Writer.WriteHeader(http.StatusOK)
+    currentId := strings.Trim(fileId, "\"") 
+for {
+    log.Printf("Downloading chunk with ID: %s", currentId)
+    fileBytes, err := discordutil.DownloadFileFromChannel(bot, currentId)
+    if err != nil {
+        ctx.Status(http.StatusNotFound)
+        return
+    }
+    ctx.Writer.Write(fileBytes)
+    ctx.Writer.(http.Flusher).Flush()
+    nextId, exists := idChain[currentId]
+    if !exists {
+        break
+    }
+    currentId = strings.Trim(nextId, "\"")
+}
 }

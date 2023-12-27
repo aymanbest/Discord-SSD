@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"crypto/md5"
-	
+	"encoding/json"
 	"fmt"
 	"log"
 	"math"
@@ -19,6 +19,8 @@ import (
 
 func PostUpload(ctx *gin.Context) {
     var table storage.FileTable
+    table.Files = make(map[string]string)
+    table.IdChain = make(map[string]string)
     bot, _ := ctx.MustGet("bot").(*discordgo.Session)
     form, err := ctx.MultipartForm()
     if err != nil {
@@ -40,14 +42,28 @@ func PostUpload(ctx *gin.Context) {
             message := discordutil.UploadFileToChannel(bot, chunkSum, bytes.NewBuffer(splitBuff[:size]))
 
             if i == 0 {
-                table.AddFile(file.Filename, message.ID)
+                table.Files[file.Filename] = message.ID
                 prevId = message.ID
             } else {
-                table.AddToChain(prevId, message.ID)
+                table.IdChain[prevId] = message.ID
                 prevId = message.ID
             }
         }
         content.Close()
+    }
+
+    filesJson, err := json.Marshal(table.Files)
+    if err != nil {
+        log.Fatal(err)
+    }
+    idChainJson, err := json.Marshal(table.IdChain)
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    _, err = storage.GetDB().Exec(`INSERT INTO discssd (files, id_chain) VALUES ($1, $2)`, filesJson, idChainJson)
+    if err != nil {
+        log.Fatal(err)
     }
 }
 

@@ -4,6 +4,7 @@ import (
     "encoding/base64"
     "net/http"
     "strings"
+    "os"
 
     "github.com/gin-gonic/gin"
 )
@@ -11,8 +12,9 @@ import (
 func BasicAuth() gin.HandlerFunc {
     return func(ctx *gin.Context) {
         // Define the authorized user
-        user := "user"
-        pass := "aymanfaik1"
+        
+        user := os.Getenv("USER")
+        pass := os.Getenv("PASS")
 
         // Get the Authorization header
         auth := ctx.Request.Header.Get("Authorization")
